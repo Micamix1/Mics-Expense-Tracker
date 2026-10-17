@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mics Expense Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+      background: #f7f8fa;
+      color: #1f2328;
+      font-size: 14px;
+      line-height: 1.6;
+      padding: 24px;
+    }
+
+    h1 { font-size: 22px; font-weight: 700; margin-bottom: 24px; color: #1f2328; letter-spacing: 0.5px; }
+
+    /* ── Overview bar ── */
+    .overview-bar {
+      display: flex; flex-wrap: wrap; gap: 12px;
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
+      padding: 16px 24px; margin-bottom: 24px; align-items: center;
+    }
+    .overview-item { flex: 1 1 150px; text-align: center; }
+    .overview-item .ov-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.7px; color: #57606a; margin-bottom: 2px;
+    }
+    .overview-item .ov-value { font-size: 20px; font-weight: 700; }
+    .ov-divider { width: 1px; height: 40px; background: #e5e7eb; flex: 0 0 1px; }
+    .ov-positive { color: #1a7f37; }
+    .ov-negative { color: #cf222e; }
+    .ov-neutral  { color: #3b82d4; }
+
+    /* ── Section card ── */
+    .section-card {
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
+      padding: 20px 24px; margin-bottom: 24px;
+    }
+    .section-title {
+      font-size: 13px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.8px; color: #57606a; margin-bottom: 14px;
+    }
+
+    /* ── Tracker nav ── */
+    .tracker-nav {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .tracker-nav button {
+      background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 6px;
+      padding: 5px 12px; cursor: pointer; font-size: 13px; color: #1f2328;
+    }
+    .tracker-nav button:hover { background: #e5e7eb; }
+    .tracker-info { flex: 1; min-width: 200px; }
+    .tracker-info .tracker-label {
+      font-size: 16px; font-weight: 700; color: #1f2328;
+    }
+    .tracker-info .tracker-date {
+      font-size: 12px; color: #57606a;
+    }
+    .btn-new-tracker {
+      background: #1a7f37; color: #fff; border: none; border-radius: 6px;
+      padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-new-tracker:hover { background: #146c2e; }
+    .tracker-counter {
+      font-size: 12px; color: #57606a; white-space: nowrap;
+    }
+
+    /* ── Funds grid ── */
+    .funds-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+    .fund-item label { display: block; font-size: 12px; font-weight: 600; color: #57606a; margin-bottom: 4px; }
+    .fund-item input[type="number"] {
+      width: 100%; padding: 7px 10px; border: 1px solid #e5e7eb; border-radius: 6px;
+      font-size: 14px; color: #1f2328; background: #f7f8fa;
+    }
+    .fund-item input[type="number"]:focus { outline: none; border-color: #3b82d4; background: #fff; }
+
+    /* ── Table ── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 820px; }
+    thead tr { background: #f7f8fa; }
+    th {
+      padding: 8px 8px; font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.6px; color: #57606a; border-bottom: 2px solid #e5e7eb;
+      text-align: center; white-space: nowrap;
+    }
+    th:first-child, th:nth-child(2) { text-align: left; }
+    td { padding: 6px 8px; border-bottom: 1px solid #f0f1f3; vertical-align: middle; text-align: center; }
+    td:first-child { text-align: left; }
+    td:nth-child(2) { text-align: right; }
+
+    tr.row-ok   td { background: #f6fff8; }
+    tr.row-bad  td { background: #fff0f0; }
+    tr.row-paid td { opacity: 0.5; }
+    tr:hover td { filter: brightness(0.97); }
+
+    td input[type="text"] {
+      width: 100%; border: 1px solid #e5e7eb; border-radius: 5px;
+      padding: 5px 8px; font-size: 13px; background: transparent;
+    }
+    td input[type="text"]:focus { outline: none; border-color: #3b82d4; background: #fff; }
+    td input[type="number"] {
+      width: 100px; border: 1px solid #e5e7eb; border-radius: 5px;
+      padding: 5px 8px; font-size: 13px; background: transparent; text-align: right;
+    }
+    td input[type="number"]:focus { outline: none; border-color: #3b82d4; background: #fff; }
+    td input[type="date"] {
+      border: 1px solid #e5e7eb; border-radius: 5px; padding: 4px 6px;
+      font-size: 12px; background: transparent; color: #1f2328; width: 130px;
+    }
+    td input[type="date"]:focus { outline: none; border-color: #3b82d4; background: #fff; }
+    td input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: #3b82d4; }
+    td input[type="checkbox"]:disabled { opacity: 0.22; cursor: not-allowed; }
+
+    .btn-paid {
+      border: 1px solid #e5e7eb; border-radius: 5px; padding: 3px 9px;
+      font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap;
+    }
+    .btn-paid.unpaid { background: #fff8e1; color: #7a5c00; border-color: #f0d070; }
+    .btn-paid.paid   { background: #f0fff4; color: #1a7f37; border-color: #b7ebc7; }
+
+    .btn-add {
+      margin-top: 14px; background: #3b82d4; color: #fff; border: none;
+      border-radius: 6px; padding: 8px 18px; font-size: 13px; cursor: pointer; font-weight: 600;
+    }
+    .btn-add:hover { background: #2d6bbf; }
+
+    .btn-remove {
+      background: none; border: none; color: #cf222e; cursor: pointer;
+      font-size: 16px; font-weight: 700; padding: 0 4px;
+    }
+    .btn-remove:hover { color: #9a1118; }
+
+    /* ── Summary cards ── */
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; margin-top: 8px; }
+    .summary-card { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 16px; }
+    .summary-card .label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #57606a; margin-bottom: 4px; }
+    .summary-card .funds-avail { font-size: 13px; color: #57606a; margin-bottom: 2px; }
+    .summary-card .committed   { font-size: 13px; color: #cf222e; margin-bottom: 2px; }
+    .summary-card .remaining   { font-size: 16px; font-weight: 700; }
+
+    .need-tag   { display: inline-block; margin-top: 4px; font-size: 11px; background: #fff0f0; color: #cf222e; border: 1px solid #fcc; border-radius: 4px; padding: 2px 7px; font-weight: 600; }
+    .excess-tag { display: inline-block; margin-top: 4px; font-size: 11px; background: #f0fff4; color: #1a7f37; border: 1px solid #b7ebc7; border-radius: 4px; padding: 2px 7px; font-weight: 600; }
+
+    .positive { color: #1a7f37; }
+    .negative { color: #cf222e; }
+
+    .funds-row td { font-size: 12px; color: #57606a; font-style: italic; background: #fafafa; }
+
+    /* ── Category group headers ── */
+    .group-row td.group-cell {
+      text-align: left; background: #f7f8fa; padding: 10px 12px;
+      border-top: 10px solid #fff; border-bottom: 1px solid #e5e7eb;
+    }
+    .group-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .group-title { font-size: 14px; font-weight: 700; color: #1f2328; }
+    .group-desc  { flex: 1 1 200px; font-size: 12px; color: #57606a; font-weight: 400; }
+    .group-head .btn-add { margin-top: 0; padding: 6px 14px; }
+    .group-empty td { text-align: left; color: #8b949e; font-size: 12px; font-style: italic; padding: 8px 12px; }
+
+    /* ── Transfer box ── */
+    .transfer-box { margin-top: 16px; background: #fffbea; border: 1px solid #f0d070; border-radius: 8px; padding: 14px 18px; }
+    .transfer-box .transfer-title { font-size: 13px; font-weight: 700; color: #7a5c00; margin-bottom: 8px; }
+    .transfer-box ul { list-style: none; padding: 0; }
+    .transfer-box li { font-size: 13px; color: #1f2328; padding: 3px 0; border-bottom: 1px solid #f0e8b0; }
+    .transfer-box li:last-child { border-bottom: none; }
+    .no-transfer { font-size: 13px; color: #1a7f37; font-weight: 600; }
+
+    /* ── Due date ── */
+    .due-soon { color: #cf222e; font-weight: 700; }
+
+    /* ── Confirm modal ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35);
+      z-index: 100; align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: #fff; border-radius: 12px; padding: 28px 32px;
+      max-width: 400px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    }
+    .modal-box h2 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .modal-box p  { font-size: 13px; color: #57606a; margin-bottom: 20px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    .modal-actions button {
+      border: none; border-radius: 6px; padding: 8px 18px; font-size: 13px;
+      font-weight: 600; cursor: pointer;
+    }
+    /* ── Repeat / installment controls ── */
+    .row-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 5px; font-size: 12px; color: #57606a; }
+    .row-meta select {
+      border: 1px solid #e5e7eb; border-radius: 5px; padding: 3px 6px;
+      font-size: 12px; background: #fff; color: #1f2328;
+    }
+    .row-meta input[type="number"] { width: 56px; padding: 3px 6px; text-align: center; }
+    .badge-carried {
+      background: #fff0f0; color: #cf222e; border: 1px solid #fcc;
+      border-radius: 4px; padding: 1px 6px; font-size: 11px; font-weight: 700;
+    }
+    .badge-term {
+      background: #eef4fc; color: #2d6bbf; border: 1px solid #c9dcf5;
+      border-radius: 4px; padding: 1px 6px; font-size: 11px; font-weight: 700;
+    }
+
+    .btn-cancel-modal { background: #f7f8fa; color: #1f2328; border: 1px solid #e5e7eb !important; }
+    .btn-cancel-modal:hover { background: #e5e7eb; }
+    .btn-confirm-modal { background: #1a7f37; color: #fff; }
+    .btn-confirm-modal:hover { background: #146c2e; }
+
+    /* ── Mobile / Android portrait ── */
+    @media (max-width: 640px) {
+      body { padding: 12px; font-size: 15px; }
+      h1 { font-size: 20px; margin-bottom: 16px; }
+
+      .section-card { padding: 14px !important; margin-bottom: 16px; }
+
+      /* Overview: 2x2 grid */
+      .overview-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 14px; margin-bottom: 16px; }
+      .ov-divider { display: none; }
+      .overview-item .ov-value { font-size: 17px; }
+
+      /* Tracker nav: title on top, buttons below */
+      .tracker-info { order: -1; flex: 1 1 100%; min-width: 0; }
+      .tracker-nav button { flex: 1 1 auto; padding: 10px 12px; font-size: 14px; }
+      .tracker-counter { order: 0; }
+
+      .funds-grid { grid-template-columns: 1fr 1fr; }
+      .fund-item input[type="number"] { font-size: 16px; padding: 10px; }
+
+      /* Table -> stacked cards */
+      .table-wrap { overflow-x: visible; }
+      table, thead, tbody, tfoot { display: block; width: 100%; min-width: 0; }
+      thead { display: none; }
+      tr {
+        display: grid; grid-template-columns: repeat(12, 1fr); gap: 8px 10px;
+        border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; margin-bottom: 12px;
+      }
+      td, td:first-child, td:nth-child(2) {
+        display: block; border-bottom: none; padding: 0; text-align: left;
+        grid-column: span 3;
+      }
+      td:empty { display: none; }
+      td::before {
+        content: attr(data-label); display: block; font-size: 11px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.5px; color: #57606a; margin-bottom: 3px;
+      }
+      td[data-label=""]::before { display: none; }
+      td:nth-child(1)  { grid-column: span 12; }
+      td:nth-child(2), td:nth-child(3) { grid-column: span 6; }
+      td:nth-child(4), td:nth-child(5) { grid-column: span 6; }
+      td:nth-child(10) { grid-column: span 9; }
+      td:nth-child(11) { grid-column: span 3; text-align: right; align-self: end; }
+
+      td input[type="text"], td input[type="number"], td input[type="date"] {
+        width: 100%; font-size: 16px; padding: 9px 10px;
+      }
+      td input[type="number"] { text-align: left; }
+      td input[type="checkbox"] { width: 24px; height: 24px; }
+      .btn-paid { padding: 9px 12px; font-size: 13px; width: 100%; }
+      .btn-remove { font-size: 26px; padding: 0 10px; }
+      .btn-add { width: 100%; padding: 12px; font-size: 15px; }
+
+      tr:hover td { filter: none; }
+      tr.row-ok, tr.row-bad { border-width: 1px; }
+      tr.row-ok   { background: #f6fff8; }
+      tr.row-bad  { background: #fff0f0; }
+      tr.row-ok td, tr.row-bad td { background: transparent; }
+      tr.row-paid { opacity: 0.55; }
+      tr.row-paid td { opacity: 1; }
+
+      /* Funds-available footer row: 4 fund cells in a 2x2 grid */
+      tfoot tr.funds-row { background: #fafafa; }
+      .funds-row td { font-size: 13px; background: transparent; }
+      .funds-row td:nth-child(1) { grid-column: span 12; }
+      .funds-row td[id] { grid-column: span 6; }
+
+      .summary-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .summary-card { padding: 12px; }
+
+      .row-meta input[type="number"] { font-size: 14px; padding: 6px 8px; width: 64px; }
+
+      tr.group-row, tr.group-empty { display: block; border: none; padding: 0; margin-bottom: 8px; background: transparent; }
+      td.group-cell { display: block; border-radius: 8px; border: 1px solid #e5e7eb; border-top: 1px solid #e5e7eb !important; }
+      .group-head .btn-add { width: auto; padding: 9px 16px; font-size: 14px; }
+      tr.group-empty td { display: block; grid-column: auto; }
+
+      .modal-box { padding: 22px 20px; }
+      .modal-actions button { padding: 11px 16px; font-size: 14px; }
+    }
+  </style>
+</head>
+<body>
+
+<h1>💳 Mics Expense Tracker</h1>
+
+<!-- ── OVERVIEW BAR ── -->
+<div class="overview-bar">
+  <div class="overview-item">
+    <div class="ov-label">Total Funds</div>
+    <div class="ov-value ov-neutral" id="ov-total-funds">₱0.00</div>
+  </div>
+  <div class="ov-divider"></div>
+  <div class="overview-item">
+    <div class="ov-label">Paid</div>
+    <div class="ov-value ov-positive" id="ov-paid">₱0.00</div>
+  </div>
+  <div class="ov-divider"></div>
+  <div class="overview-item">
+    <div class="ov-label">Still Pending</div>
+    <div class="ov-value ov-negative" id="ov-pending">₱0.00</div>
+  </div>
+  <div class="ov-divider"></div>
+  <div class="overview-item">
+    <div class="ov-label">Funds Available</div>
+    <div class="ov-value ov-positive" id="ov-funds-left">₱0.00</div>
+  </div>
+</div>
+
+<!-- ── TRACKER NAV ── -->
+<div class="section-card" style="padding: 16px 24px;">
+  <div class="tracker-nav">
+    <button onclick="changeTracker(-1)">&#8592; Prev</button>
+    <div class="tracker-info">
+      <div class="tracker-label" id="tracker-label">—</div>
+      <div class="tracker-date" id="tracker-date"></div>
+    </div>
+    <span class="tracker-counter" id="tracker-counter"></span>
+    <button onclick="changeTracker(1)">Next &#8594;</button>
+    <button class="btn-new-tracker" onclick="confirmNewTracker()">💰 New Tracker</button>
+  </div>
+</div>
+
+<!-- ── FUNDS AVAILABLE ── -->
+<div class="section-card">
+  <div class="section-title">Funds Available — this tracker</div>
+  <div class="funds-grid">
+    <div class="fund-item">
+      <label>BPI (₱)</label>
+      <input type="number" id="fund-bpi" min="0" value="0" oninput="saveFunds(); recalc()" />
+    </div>
+    <div class="fund-item">
+      <label>GCash (₱)</label>
+      <input type="number" id="fund-gcash" min="0" value="0" oninput="saveFunds(); recalc()" />
+    </div>
+    <div class="fund-item">
+      <label>Maya (₱)</label>
+      <input type="number" id="fund-maya" min="0" value="0" oninput="saveFunds(); recalc()" />
+    </div>
+    <div class="fund-item">
+      <label>Cash (₱)</label>
+      <input type="number" id="fund-cash" min="0" value="0" oninput="saveFunds(); recalc()" />
+    </div>
+  </div>
+</div>
+
+<!-- ── EXPENSES ── -->
+<div class="section-card">
+  <div class="table-wrap">
+    <table id="expense-table">
+      <thead>
+        <tr>
+          <th style="width:160px">Payee</th>
+          <th style="width:100px">Amount (₱)</th>
+          <th style="width:120px">Due Date</th>
+          <th>Pay<br/>CASH</th>
+          <th>Pay<br/>ONLINE</th>
+          <th>Mode<br/>CASH</th>
+          <th>Mode<br/>BPI</th>
+          <th>Mode<br/>MAYA</th>
+          <th>Mode<br/>GCASH</th>
+          <th style="width:70px">Status</th>
+          <th style="width:24px"></th>
+        </tr>
+      </thead>
+      <tbody class="expense-body" id="body-none">
+        <tr class="group-row"><td class="group-cell" colspan="11" data-label="">
+          <div class="group-head">
+            <span class="group-title">🧾 One-time Expenses</span>
+            <span class="group-desc">Only for this tracker. Unpaid ones are carried over to the next tracker.</span>
+            <button class="btn-add" onclick="addRow('none')">+ Add</button>
+          </div>
+        </td></tr>
+      </tbody>
+      <tbody class="expense-body" id="body-monthly">
+        <tr class="group-row"><td class="group-cell" colspan="11" data-label="">
+          <div class="group-head">
+            <span class="group-title">🔁 Monthly Expenses</span>
+            <span class="group-desc">Copied to every new tracker. Tap × to stop it (e.g. no longer renting).</span>
+            <button class="btn-add" onclick="addRow('monthly')">+ Add</button>
+          </div>
+        </td></tr>
+      </tbody>
+      <tbody class="expense-body" id="body-installment">
+        <tr class="group-row"><td class="group-cell" colspan="11" data-label="">
+          <div class="group-head">
+            <span class="group-title">💳 Installments</span>
+            <span class="group-desc">Copied every new tracker until the last payment (e.g. 6 of 12).</span>
+            <button class="btn-add" onclick="addRow('installment')">+ Add</button>
+          </div>
+        </td></tr>
+      </tbody>
+      <tfoot>
+        <tr class="funds-row">
+          <td data-label=""><strong>Funds Available</strong></td>
+          <td></td><td></td><td></td><td></td>
+          <td id="fa-cash" data-label="Cash">₱0</td>
+          <td id="fa-bpi" data-label="BPI">₱0</td>
+          <td id="fa-maya" data-label="Maya">₱0</td>
+          <td id="fa-gcash" data-label="GCash">₱0</td>
+          <td></td><td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+<!-- ── SUMMARY ── -->
+<div class="section-card">
+  <div class="section-title">Fund Balance Summary</div>
+  <div class="summary-grid" id="summary-grid"></div>
+  <div class="transfer-box">
+    <div class="transfer-title">⚡ Transfer Suggestions</div>
+    <ul id="transfer-list"></ul>
+  </div>
+</div>
+
+<!-- ── CONFIRM MODAL ── -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-box">
+    <h2>💰 Start New Tracker?</h2>
+    <p>This will create a fresh tracker with empty funds. Unpaid expenses are carried over, and Monthly and Installment expenses are added automatically. Your previous trackers are kept — you can still browse them with the ← Prev button.</p>
+    <div class="modal-actions">
+      <button class="btn-cancel-modal" onclick="closeModal()">Cancel</button>
+      <button class="btn-confirm-modal" onclick="createNewTracker()">Yes, New Tracker</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Constants ──────────────────────────────────────────────────────────────
+  const SOURCES  = ['cash', 'bpi', 'maya', 'gcash'];
+  const LABELS   = { cash: 'Cash', bpi: 'BPI', maya: 'Maya', gcash: 'GCash' };
+  const LS_KEY   = 'mic_tracker_v2';
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  // trackers: array of { id, label, createdAt, funds: {}, rows: [] }
+  // newest is last; trackerIndex points to currently viewed tracker
+  let trackers     = [];
+  let trackerIndex = 0; // index into trackers array (0 = oldest)
+
+  // ── Persistence ────────────────────────────────────────────────────────────
+  function saveAll() {
+    localStorage.setItem(LS_KEY, JSON.stringify({ trackers, trackerIndex }));
+  }
+
+  function loadAll() {
+    try {
+      const d = JSON.parse(localStorage.getItem(LS_KEY));
+      if (d && Array.isArray(d.trackers) && d.trackers.length > 0) {
+        trackers     = d.trackers;
+        trackerIndex = d.trackerIndex ?? trackers.length - 1;
+        return;
+      }
+    } catch(e) {}
+    // First run — create initial tracker
+    trackers     = [makeTrackerObj()];
+    trackerIndex = 0;
+  }
+
+  function makeTrackerObj() {
+    const now = new Date();
+    return {
+      id:        now.getTime(),
+      label:     now.toLocaleString('default', { month: 'long', year: 'numeric' }).toUpperCase()
+                 + ' — Salary ' + now.getDate(),
+      createdAt: now.toISOString(),
+      funds:     { bpi: 0, gcash: 0, maya: 0, cash: 0 },
+      rows:      []
+    };
+  }
+
+  function currentTracker() { return trackers[trackerIndex]; }
+
+  // ── Tracker navigation ─────────────────────────────────────────────────────
+  function changeTracker(delta) {
+    const next = trackerIndex + delta;
+    if (next < 0 || next >= trackers.length) return;
+    trackerIndex = next;
+    saveAll();
+    renderTracker();
+  }
+
+  function confirmNewTracker() {
+    document.getElementById('modal-overlay').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('open');
+  }
+
+  // Add one month to a YYYY-MM-DD string (clamps day, e.g. Jan 31 -> Feb 28)
+  function addMonth(str) {
+    if (!str) return '';
+    const [y, m, d] = str.split('-').map(Number);
+    const ny = m === 12 ? y + 1 : y;
+    const nm = m === 12 ? 1 : m + 1;
+    const nd = Math.min(d, new Date(ny, nm, 0).getDate());
+    return ny + '-' + String(nm).padStart(2, '0') + '-' + String(nd).padStart(2, '0');
+  }
+
+  // Build starting rows for a new tracker from the previous one:
+  //  - every unpaid row is carried over as a One-time row (flagged "carried")
+  //  - monthly rows repeat with due date +1 month
+  //  - installment rows repeat as the next installment until the last one
+  function buildCarryRows(prev) {
+    const carried = [], repeated = [];
+    prev.rows.forEach(r => {
+      if (!r.paid) {
+        const label = r.repeat === 'installment'
+          ? (r.payee || '') + ' (' + (r.termCurrent || 1) + '/' + (r.termTotal || 1) + ')'
+          : r.payee;
+        carried.push({ ...r, payee: label, repeat: 'none', paid: false, carried: true });
+      }
+      const rep = r.repeat || 'none';
+      if (rep === 'monthly') {
+        repeated.push({ ...r, paid: false, carried: false, dueDate: addMonth(r.dueDate) });
+      } else if (rep === 'installment') {
+        const cur = r.termCurrent || 1, total = r.termTotal || 1;
+        if (cur < total) {
+          repeated.push({ ...r, paid: false, carried: false, termCurrent: cur + 1, dueDate: addMonth(r.dueDate) });
+        }
+      }
+    });
+    return carried.concat(repeated);
+  }
+
+  function createNewTracker() {
+    closeModal();
+    const fresh = makeTrackerObj();
+    fresh.rows = buildCarryRows(trackers[trackers.length - 1]);
+    trackers.push(fresh);
+    trackerIndex = trackers.length - 1;
+    saveAll();
+    renderTracker();
+  }
+
+  // ── Render current tracker ─────────────────────────────────────────────────
+  function renderTracker() {
+    const t = currentTracker();
+
+    // Nav labels
+    document.getElementById('tracker-label').textContent = t.label;
+    document.getElementById('tracker-date').textContent  =
+      'Created: ' + new Date(t.createdAt).toLocaleDateString('en-PH', { year:'numeric', month:'long', day:'numeric' });
+    document.getElementById('tracker-counter').textContent =
+      (trackerIndex + 1) + ' / ' + trackers.length;
+
+    // Fund inputs
+    document.getElementById('fund-bpi').value   = t.funds.bpi   ?? 0;
+    document.getElementById('fund-gcash').value = t.funds.gcash ?? 0;
+    document.getElementById('fund-maya').value  = t.funds.maya  ?? 0;
+    document.getElementById('fund-cash').value  = t.funds.cash  ?? 0;
+
+    renderTable();
+    recalc();
+  }
+
+  // ── Funds ──────────────────────────────────────────────────────────────────
+  function saveFunds() {
+    const t = currentTracker();
+    t.funds = {
+      bpi:   parseFloat(document.getElementById('fund-bpi').value)   || 0,
+      gcash: parseFloat(document.getElementById('fund-gcash').value) || 0,
+      maya:  parseFloat(document.getElementById('fund-maya').value)  || 0,
+      cash:  parseFloat(document.getElementById('fund-cash').value)  || 0,
+    };
+    saveAll();
+  }
+
+  function getFunds() { return { ...currentTracker().funds }; }
+
+  // ── Table rendering ────────────────────────────────────────────────────────
+  const GROUPS = ['none', 'monthly', 'installment'];
+
+  function renderTable() {
+    const bodies = {};
+    GROUPS.forEach(g => {
+      const tb = document.getElementById('body-' + g);
+      while (tb.rows.length > 1) tb.deleteRow(1); // keep the group header row
+      bodies[g] = tb;
+    });
+    currentTracker().rows.forEach((r, i) => {
+      const g = GROUPS.includes(r.repeat) ? r.repeat : 'none';
+      bodies[g].appendChild(makeRow(i));
+    });
+    GROUPS.forEach(g => {
+      if (bodies[g].rows.length === 1) {
+        const tr = document.createElement('tr');
+        tr.className = 'group-empty';
+        const td = document.createElement('td');
+        td.colSpan = 11; td.setAttribute('data-label', ''); td.textContent = 'Nothing here yet.';
+        tr.appendChild(td); bodies[g].appendChild(tr);
+      }
+    });
+  }
+
+  function makeRow(i) {
+    const rows = currentTracker().rows;
+    const r    = rows[i];
+    const tr   = document.createElement('tr');
+    tr.dataset.idx = i;
+    const kind = GROUPS.includes(r.repeat) ? r.repeat : 'none';
+
+    // Payee
+    const tdPayee = document.createElement('td');
+    const inpPayee = document.createElement('input');
+    inpPayee.type = 'text'; inpPayee.placeholder = 'Payee'; inpPayee.value = r.payee || '';
+    inpPayee.oninput = e => { rows[i].payee = e.target.value; saveAll(); };
+    tdPayee.appendChild(inpPayee);
+
+    // Installment term / carried badge
+    const meta = document.createElement('div');
+    meta.className = 'row-meta';
+
+    if (kind === 'installment') {
+      const inpCur = document.createElement('input');
+      inpCur.type = 'number'; inpCur.min = 1; inpCur.value = r.termCurrent || 1; inpCur.title = 'Current installment';
+      const inpTot = document.createElement('input');
+      inpTot.type = 'number'; inpTot.min = 1; inpTot.value = r.termTotal || 12; inpTot.title = 'Total installments';
+      const commit = () => {
+        let tot = Math.max(1, parseInt(inpTot.value) || 1);
+        let cur = Math.min(tot, Math.max(1, parseInt(inpCur.value) || 1));
+        rows[i].termTotal = tot; rows[i].termCurrent = cur;
+        saveAll();
+        tr.parentNode.replaceChild(makeRow(i), tr);
+      };
+      inpCur.onchange = commit; inpTot.onchange = commit;
+      const of = document.createElement('span'); of.textContent = 'of';
+      const left = document.createElement('span');
+      left.className = 'badge-term';
+      left.textContent = ((r.termTotal || 12) - (r.termCurrent || 1)) + ' left';
+      meta.append(inpCur, of, inpTot, left);
+    }
+
+    if (r.carried) {
+      const b = document.createElement('span');
+      b.className = 'badge-carried'; b.textContent = '⏪ Carried over';
+      meta.appendChild(b);
+    }
+    if (meta.children.length) tdPayee.appendChild(meta);
+    tr.appendChild(tdPayee);
+
+    // Amount
+    const tdAmt = document.createElement('td');
+    const inpAmt = document.createElement('input');
+    inpAmt.type = 'number'; inpAmt.min = 0; inpAmt.value = r.amount || ''; inpAmt.placeholder = '0';
+    inpAmt.oninput = e => { rows[i].amount = parseFloat(e.target.value) || 0; saveAll(); recalc(); };
+    tdAmt.appendChild(inpAmt); tr.appendChild(tdAmt);
+
+    // Due date
+    const tdDate = document.createElement('td');
+    const inpDate = document.createElement('input');
+    inpDate.type = 'date'; inpDate.value = r.dueDate || '';
+    inpDate.onchange = e => { rows[i].dueDate = e.target.value; saveAll(); recalc(); };
+    if (r.dueDate && !r.paid) {
+      const daysLeft = Math.ceil((new Date(r.dueDate) - new Date()) / 86400000);
+      if (daysLeft <= 3) inpDate.classList.add('due-soon');
+    }
+    tdDate.appendChild(inpDate); tr.appendChild(tdDate);
+
+    // Payment type: cash / online
+    ['cash', 'online'].forEach(pt => {
+      const td = document.createElement('td');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.checked = r.payment === pt;
+      cb.onchange = () => {
+        rows[i].payment = cb.checked ? pt : '';
+        if (pt === 'cash') { rows[i].mode = cb.checked ? 'cash' : ''; }
+        else { if (!cb.checked) rows[i].mode = ''; }
+        saveAll();
+        tr.parentNode.replaceChild(makeRow(i), tr);
+        recalc();
+      };
+      td.appendChild(cb); tr.appendChild(td);
+    });
+
+    // Mode checkboxes
+    const payment = r.payment;
+    ['cash', 'bpi', 'maya', 'gcash'].forEach(m => {
+      const td = document.createElement('td');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.checked = r.mode === m;
+      if (payment === 'cash')        cb.disabled = (m !== 'cash');
+      else if (payment === 'online') cb.disabled = (m === 'cash');
+      else                           cb.disabled = true;
+      cb.onchange = () => {
+        rows[i].mode = cb.checked ? m : '';
+        saveAll();
+        tr.parentNode.replaceChild(makeRow(i), tr);
+        recalc();
+      };
+      td.appendChild(cb); tr.appendChild(td);
+    });
+
+    // Paid toggle
+    const tdPaid = document.createElement('td');
+    const btnPaid = document.createElement('button');
+    btnPaid.className = 'btn-paid ' + (r.paid ? 'paid' : 'unpaid');
+    btnPaid.textContent = r.paid ? '✅ Paid' : '🕐 Pending';
+    btnPaid.onclick = () => {
+      rows[i].paid = !rows[i].paid; saveAll();
+      tr.parentNode.replaceChild(makeRow(i), tr);
+      recalc();
+    };
+    tdPaid.appendChild(btnPaid); tr.appendChild(tdPaid);
+
+    // Remove
+    const tdDel = document.createElement('td');
+    const btnDel = document.createElement('button');
+    btnDel.className = 'btn-remove'; btnDel.textContent = '×';
+    btnDel.title = kind === 'monthly' ? 'Stop this monthly expense'
+                 : kind === 'installment' ? 'Remove this installment' : 'Remove';
+    btnDel.onclick = () => {
+      if (kind !== 'none') {
+        const msg = kind === 'monthly'
+          ? 'Stop this monthly expense? It will no longer be copied to new trackers (past trackers keep it).'
+          : 'Remove this installment? It will no longer be copied to new trackers.';
+        if (!confirm(msg)) return;
+      }
+      rows.splice(i, 1); saveAll(); renderTable(); recalc();
+    };
+    tdDel.appendChild(btnDel); tr.appendChild(tdDel);
+
+    // Labels shown on mobile (card layout)
+    ['Payee', 'Amount (₱)', 'Due Date', 'Pay Cash', 'Pay Online', 'Mode Cash', 'BPI', 'Maya', 'GCash', 'Status', '']
+      .forEach((label, idx) => tr.children[idx].setAttribute('data-label', label));
+
+    return tr;
+  }
+
+  function addRow(kind) {
+    const row = { payee: '', amount: 0, payment: '', mode: '', dueDate: '', paid: false, repeat: kind || 'none' };
+    if (kind === 'installment') { row.termCurrent = 1; row.termTotal = 12; }
+    currentTracker().rows.push(row);
+    saveAll(); renderTable(); recalc();
+  }
+
+  // ── Formatting ─────────────────────────────────────────────────────────────
+  function fmt(n) {
+    return '₱' + n.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  // ── Recalculation ──────────────────────────────────────────────────────────
+  function recalc() {
+    const rows  = currentTracker().rows;
+    const funds = getFunds();
+
+    const paidPerSource = { cash: 0, bpi: 0, maya: 0, gcash: 0 };
+    const committed     = { cash: 0, bpi: 0, maya: 0, gcash: 0 };
+    let totalPaid = 0, totalPending = 0;
+
+    rows.forEach(r => {
+      const amt = r.amount || 0;
+      if (r.paid) {
+        totalPaid += amt;
+        if (r.mode && paidPerSource[r.mode] !== undefined) paidPerSource[r.mode] += amt;
+      } else {
+        totalPending += amt;
+        if (r.mode && committed[r.mode] !== undefined) committed[r.mode] += amt;
+      }
+    });
+
+    // ── Overview bar ──
+    const totalFunds = SOURCES.reduce((s, k) => s + funds[k], 0);
+    const fundsLeft  = totalFunds - totalPaid;
+    document.getElementById('ov-total-funds').textContent = fmt(totalFunds);
+    document.getElementById('ov-paid').textContent        = fmt(totalPaid);
+    document.getElementById('ov-pending').textContent     = fmt(totalPending);
+    const flEl = document.getElementById('ov-funds-left');
+    flEl.textContent = fmt(fundsLeft);
+    flEl.className = 'ov-value ' + (fundsLeft >= 0 ? 'ov-positive' : 'ov-negative');
+
+    // ── Table footer ──
+    document.getElementById('fa-cash').textContent  = fmt(funds.cash  - paidPerSource.cash);
+    document.getElementById('fa-bpi').textContent   = fmt(funds.bpi   - paidPerSource.bpi);
+    document.getElementById('fa-maya').textContent  = fmt(funds.maya  - paidPerSource.maya);
+    document.getElementById('fa-gcash').textContent = fmt(funds.gcash - paidPerSource.gcash);
+
+    // ── Row color coding ──
+    document.querySelectorAll('.expense-body tr[data-idx]').forEach(tr => {
+      const r = rows[+tr.dataset.idx]; tr.className = '';
+      if (!r) return;
+      if (r.paid) { tr.classList.add('row-paid'); return; }
+      if (r.mode && r.amount) {
+        const srcBal = (funds[r.mode] - paidPerSource[r.mode]) - committed[r.mode];
+        tr.classList.add(srcBal < 0 ? 'row-bad' : 'row-ok');
+      }
+    });
+
+    // ── Balance per source ──
+    const balance = {};
+    SOURCES.forEach(s => { balance[s] = funds[s] - paidPerSource[s] - committed[s]; });
+
+    // ── Summary cards ──
+    const grid = document.getElementById('summary-grid');
+    grid.innerHTML = '';
+    SOURCES.forEach(s => {
+      const card = document.createElement('div');
+      card.className = 'summary-card';
+      const avail = funds[s] - paidPerSource[s];
+      const bal   = avail - committed[s];
+      const tag = bal < 0
+        ? `<span class="need-tag">Needs ${fmt(Math.abs(bal))}</span>`
+        : (bal > 0 ? `<span class="excess-tag">Excess ${fmt(bal)}</span>` : '');
+      card.innerHTML = `
+        <div class="label">${LABELS[s]}</div>
+        <div class="funds-avail">Available Funds: ${fmt(avail)}</div>
+        <div class="committed">Paid: ${fmt(paidPerSource[s])}</div>
+        <div class="remaining ${bal >= 0 ? 'positive' : 'negative'}">Funds Left: ${fmt(bal)}</div>
+        ${tag}
+      `;
+      grid.appendChild(card);
+    });
+
+    buildTransferSuggestions(balance);
+  }
+
+  // ── Transfer suggestions ───────────────────────────────────────────────────
+  function buildTransferSuggestions(balance) {
+    const list = document.getElementById('transfer-list');
+    list.innerHTML = '';
+
+    const deficits  = SOURCES.filter(s => balance[s] < 0).map(s => ({ s, v: -balance[s] }));
+    const surpluses = SOURCES.filter(s => balance[s] > 0).map(s => ({ s, v: balance[s] }));
+
+    if (deficits.length === 0) {
+      const li = document.createElement('li');
+      li.className = 'no-transfer';
+      li.textContent = '✅ All funds are sufficient — no transfers needed!';
+      list.appendChild(li); return;
+    }
+
+    const suggestions = [];
+    const surpClone = surpluses.map(x => ({ ...x }));
+
+    deficits.forEach(def => {
+      let remaining = def.v;
+      surpClone.forEach(sur => {
+        if (remaining <= 0 || sur.v <= 0) return;
+        const transfer = Math.min(remaining, sur.v);
+        suggestions.push({ from: sur.s, to: def.s, amount: transfer });
+        sur.v -= transfer; remaining -= transfer;
+      });
+      if (remaining > 0) suggestions.push({ from: null, to: def.s, amount: remaining, unresolved: true });
+    });
+
+    suggestions.forEach(sug => {
+      const li = document.createElement('li');
+      if (sug.unresolved) {
+        li.innerHTML = `⚠️ <strong>${LABELS[sug.to]}</strong> still needs <strong>${fmt(sug.amount)}</strong> — please top up.`;
+      } else {
+        li.innerHTML = `Transfer <strong>${fmt(sug.amount)}</strong> from <strong>${LABELS[sug.from]}</strong> → <strong>${LABELS[sug.to]}</strong>`;
+      }
+      list.appendChild(li);
+    });
+  }
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  loadAll();
+  renderTracker();
+</script>
+</body>
+</html>
